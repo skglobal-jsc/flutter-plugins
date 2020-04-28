@@ -17,10 +17,11 @@
 
 @property(strong, nonatomic)
     NSMutableDictionary<NSString *, SKPaymentTransaction *> *transactionsSetter;
-
 @end
 
-@implementation FIAPaymentQueueHandler
+@implementation FIAPaymentQueueHandler {
+    BOOL isPurchingPress;
+}
 
 - (instancetype)initWithQueue:(nonnull SKPaymentQueue *)queue
                      transactionsUpdated:(nullable TransactionsUpdated)transactionsUpdated
@@ -32,6 +33,7 @@
                         updatedDownloads:(nullable UpdatedDownloads)updatedDownloads {
   self = [super init];
   if (self) {
+    isPurchingPress = FALSE;
     _queue = queue;
     _transactionsUpdated = transactionsUpdated;
     _transactionsRemoved = transactionsRemoved;
@@ -83,6 +85,17 @@
       //    subscription more than once by accident.
       self.transactionsSetter[transaction.payment.productIdentifier] = transaction;
     }
+      if (transaction.transactionState != SKPaymentTransactionStatePurchasing) {
+          if (isPurchingPress == TRUE) {
+              // skip, because this is user buying action
+              isPurchingPress = FALSE;
+          } else {
+              // By pending renew !!!
+              [queue finishTransaction:transaction];
+          }
+      } else {
+          isPurchingPress = TRUE;
+      }
   }
   // notify dart through callbacks.
   self.transactionsUpdated(transactions);
